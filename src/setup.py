@@ -1,0 +1,28 @@
+import json
+import os
+from collections import defaultdict
+
+
+def read_json_file(file_path):
+    """ Read, parse and return JSON file """
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"File not found: {file_path}")
+    
+    with open(file_path, 'r', encoding='utf-8') as file:
+        data = json.load(file)
+
+    return data
+
+
+def group_by_company_id(clients):
+    """ Group the clients by company ID, return a dict with companyId as key and list of job details as value """
+    company_jobs = defaultdict(list)
+
+    for client in clients:  # Parse all clients by companyId
+        company_id = client['companyId']
+        job_details = {key: value for key, value in client.items() if key != 'companyId'}
+        company_jobs[company_id].append(job_details)
+
+    company_jobs = dict(company_jobs)  # Convert back to a standard dict
+    
+    return company_jobs
