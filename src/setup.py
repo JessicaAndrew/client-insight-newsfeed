@@ -20,7 +20,7 @@ def group_by_company_id(clients):
 
     for client in clients:  # Parse all clients by companyId
         company_id = client['companyId']
-        job_details = {key: value for key, value in client.items() if key != 'companyId'}
+        job_details = {key: value for key, value in client.items() if key != 'companyId' or key != 'companyRank'}
         company_jobs[company_id].append(job_details)
 
     company_jobs = dict(company_jobs)  # Convert back to a standard dict
