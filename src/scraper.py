@@ -10,7 +10,8 @@ class NewsService:
         """ Searches for news, specifically targeting business growth or architectural triggers """
         self.gn.clear()  # Avoid mixing results from previous searches
         
-        query = f'"{client_name}" (expansion OR "new office" OR "headquarters")'  # Build a targeted search query ## TODO expand this
+        # Build a comprehensive search query targeting business opportunities for architects
+        query = f'"{client_name}" (expansion OR "new office" OR headquarters OR funding OR investment OR acquisition OR merger OR partnership OR "strategic alliance" OR "joint venture" OR "product launch" OR "new service" OR IPO OR restructuring OR "leadership change" OR CEO OR CIO OR "real estate" OR "office space" OR relocation OR hiring OR "talent acquisition" OR award OR recognition OR enterprise OR infrastructure OR technology OR digital OR innovation OR "business development" OR contract OR government)'
         
         try:
             self.gn.search(query)

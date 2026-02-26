@@ -1,41 +1,81 @@
+import os
+import time
+import random
+import json
+import yaml
+
 from setup import read_json_file, group_by_company_id
 from scraper import NewsService
+from processor import EnrichmentEngine
 from generator import ReportGenerator
-import os
+
+
+def load_config():
+    # Construct path to config.yaml
+    config_path = os.path.join(os.path.dirname(__file__), '..', 'config.yaml')
+    
+    with open(config_path, 'r') as file:
+        return yaml.safe_load(file)
 
 
 if __name__ == "__main__":
-    # Get the path to clients.json
+    # Setup paths and services
     json_file_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'clients.json')
 
-    # Read in the file and group the clients by company ID
-    clients = read_json_file(json_file_path)
-    company_jobs = group_by_company_id(clients)
+    # Load configuration
+    config = load_config()
 
+    # Initialise your API key and services
+    OPENAI_API_KEY = config['openai']['api_key']
     service = NewsService()
+    enricher = EnrichmentEngine(api_key=OPENAI_API_KEY)
     gen = ReportGenerator()
+    
+    # Load Data
+    clients = read_json_file(json_file_path)
+    company_jobs = group_by_company_id(clients)  # Group the clients by company ID
 
     for company_id, jobs in company_jobs.items():
-        print(f"Company ID: {company_id}")
-        data = []
+        print(f"\n--- Processing Company ID: {company_id} ---")
+        company_feed_data = []
 
         for job in jobs:
-            news = service.fetch_client_news(job['name']) #TODO still need to add to news_items
-            print(news)
+            client_name = job['name']
+            raw_news = []
 
-            data.append({
-                "name": job['name'],
-                "website": job['website'],
-                "address": job['address'],
-                "news_items": [
-                    {
-                        "title": "Patagonia opens new regional hub",
-                        "link": "https://example.com",
-                        "summary": "Expanding physical footprint in the Pacific Northwest.",
-                        "why_it_matters": "They will likely need sustainable interior design consulting.",
-                        "angle": "Have you considered how your new hub reflects your Net Zero goals?"
-                    }
-                ]
-            })
+            print(f"  Scrape Fetching news for {client_name}...")
+            try:
+                raw_news = service.fetch_client_news(client_name)
+                
+                # Random delay: wait 1-3 seconds to avoid Google blocks
+                time.sleep(random.uniform(1, 3)) 
+            except Exception as e:
+                print(f"  Error: Could not fetch news for {client_name}: {e}")
+                if "429" in str(e):
+                    print("Rate Limited: sleeping for 60 seconds")
+                    time.sleep(60)
+            
+            # Enrich news using LLM if we found any
+            if raw_news:
+                print(f"  AI Analysing news for {client_name}...")
+                enriched_news = enricher.analyze_news(client_name, raw_news)
+                
+                entry = {
+                    "name": client_name,
+                    "news_items": enriched_news
+                }
 
-        gen.generate_company_report(company_id, data)
+                website = job.get('website') or job.get('Website')
+                if website:
+                    entry["website"] = website
+                
+                address = job.get('address') or job.get('Address')
+                if address:
+                    entry["address"] = address
+                
+                company_feed_data.append(entry)
+
+        # Generate report for the company if they have news
+        if company_feed_data:
+            gen.generate_company_report(company_id, company_feed_data)
+            print(f"Report generated for {company_id}")
