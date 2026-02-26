@@ -31,3 +31,39 @@ def test_clean_results_formats_and_limits_items():
         assert 'date' in item
         assert 'description' in item
         assert 'link' in item
+
+
+def test_fetch_client_news_rate_limit_retries(monkeypatch, capsys):
+    svc = NewsService()
+
+    # simulate GoogleNews.search always raising a 429-related exception
+    def fake_search(query):
+        raise Exception("HTTP Error 429: Too Many Requests")
+
+    monkeypatch.setattr(svc.gn, 'search', fake_search)
+    monkeypatch.setattr('time.sleep', lambda _s: None)  # avoid real sleeping
+
+    result = svc.fetch_client_news("TestCorp", max_retries=2)
+    assert result == []
+
+    logged = capsys.readouterr().out
+    assert "Rate limited searching for TestCorp" in logged
+    assert "Failed to retrieve news for TestCorp" in logged
+
+
+def test_run_through_clients_applies_throttling(monkeypatch):
+    svc = NewsService()
+    clients = [{'name': f'Client{i}'} for i in range(1, 4)]
+
+    monkeypatch.setattr(svc, 'fetch_client_news', lambda name: [name])  # make fetch_client_news a no-op that returns a list
+
+    sleeps = []
+
+    def fake_sleep(sec):
+        sleeps.append(sec)
+    
+    monkeypatch.setattr('time.sleep', fake_sleep)
+
+    news = svc.run_through_clients(clients)
+    assert news == {c['name']: [c['name']] for c in clients}
+    assert len(sleeps) >= len(clients)  # we expect at least one uniform pause per client + maybe 60s at multiples of 50
