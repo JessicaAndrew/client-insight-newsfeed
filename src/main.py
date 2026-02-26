@@ -45,7 +45,8 @@ if __name__ == "__main__":
 
             print(f"  Scrape Fetching news for {client_name}...")
             try:
-                raw_news = service.fetch_client_news(client_name)
+                # Fetch full article text to give the LLM richer context (best-effort)
+                raw_news = service.fetch_client_news(client_name, fetch_full=True)
                 
                 # Random delay: wait 3 to 10 seconds to avoid Google blocks
                 time.sleep(random.uniform(3, 10)) 

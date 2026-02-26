@@ -1,5 +1,8 @@
 from GoogleNews import GoogleNews
 import time
+import requests
+from bs4 import BeautifulSoup
+from typing import Optional
 import random
 
 
@@ -7,7 +10,7 @@ class NewsService:
     def __init__(self, period='30d'):
         self.gn = GoogleNews(lang='en', region='US', period=period)  # Period defines how far back to look
         
-    def fetch_client_news(self, client_name, max_retries: int = 3):
+    def fetch_client_news(self, client_name, max_retries: int = 3, fetch_full: bool = False, max_content_chars: int = 2000):
         """ Searches for news, specifically targeting business growth or architectural triggers.
 
             The underlying GoogleNews library will occasionally return HTTP 429 responses
@@ -40,6 +43,18 @@ class NewsService:
                     self.gn.search(f'"{client_name}"')
                     results = self.gn.results()
 
+                # Optionally fetch full article text for each result (best-effort)
+                if fetch_full and results:
+                    for r in results:
+                        link = r.get('link')
+                        if link:
+                            try:
+                                text = self._fetch_full_text(link)
+                                if text:
+                                    r['content'] = text[:max_content_chars]
+                            except Exception:
+                                continue  # don't fail the entire flow if fetching a single article fails
+
                 return self._clean_results(results)
             except Exception as e:
                 message = str(e)
@@ -70,13 +85,38 @@ class NewsService:
         for item in raw_results[:5]: # Only keep top 5 news items to keep LLM tokens low
             formatted.append({
                 "title": item.get('title'),
-                "media": item.get('media'), # Source/publisher
+                "media": item.get('media'),  # Source/publisher
                 "date": item.get('date'),
                 "description": item.get('desc'),  # Snippet of article
+                "content": item.get('content'),  # include any fetched full article content (trimmed) so downstream
                 "link": item.get('link')
             })
 
         return formatted
+
+    def _fetch_full_text(self, url: str, timeout: int = 10):
+        """ Best-effort extractor for the main article text from a URL """
+        headers = {
+            "User-Agent": "Mozilla/5.0 (compatible; ClientInsightBot/1.0; +https://example.com)"
+        }
+        resp = requests.get(url, headers=headers, timeout=timeout)
+        resp.raise_for_status()
+
+        soup = BeautifulSoup(resp.text, "html.parser")
+
+        # Prefer semantic article/main tags
+        article_tag = soup.find('article') or soup.find('main')
+        if article_tag:
+            texts = [p.get_text(strip=True) for p in article_tag.find_all('p')]
+            body = "\n\n".join([t for t in texts if t])
+            if body:
+                return body
+
+        # Fallback: grab visible paragraphs
+        paragraphs = [p.get_text(strip=True) for p in soup.find_all('p')]
+        body = "\n\n".join([t for t in paragraphs if t])
+        return body or None
+
 
     def run_through_clients(self, clients):
         """ Main method to run through all clients and fetch news.
