@@ -58,3 +58,17 @@ python src/main.py
 ```
 
 This will produce HTML files under `output/` based on `templates/newsfeed_template.html`.
+
+### Testing
+
+Run the test suite:
+
+```bash
+python -m pytest tests/
+```
+
+Use `-v` for verbose output:
+
+```bash
+python -m pytest tests/ -v
+```
