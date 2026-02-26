@@ -18,17 +18,17 @@ def load_config():
         return yaml.safe_load(file)
 
 
-if __name__ == "__main__":
+def main():
     # Setup paths and services
     json_file_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'clients.json')
 
     # Load configuration
     config = load_config()
 
-    # Initialise your API key and services
+    # Initialise your API key and generator (services will be created per-company
+    # so that we can skip the heavy work entirely if a report already exists
+    # for that company).
     OPENAI_API_KEY = config['openai']['api_key']
-    service = NewsService()
-    enricher = EnrichmentEngine(api_key=OPENAI_API_KEY)
     gen = ReportGenerator()
     
     # Load Data
@@ -37,6 +37,18 @@ if __name__ == "__main__":
 
     for company_id, jobs in company_jobs.items():
         print(f"\n--- Processing Company ID: {company_id} ---")
+
+        # if we've already generated a report for this company, skip all work
+        if gen.report_exists(company_id):
+            print(f"Skipping {company_id}: output already exists")
+            continue
+
+        # services are only created when we actually start doing work for a
+        # company. this prevents unnecessary HTTP connections or API client
+        # initialisation when a report is already on disk.
+        service = NewsService()
+        enricher = EnrichmentEngine(api_key=OPENAI_API_KEY)
+
         company_feed_data = []
 
         for job in jobs:
@@ -80,3 +92,7 @@ if __name__ == "__main__":
         if company_feed_data:
             gen.generate_company_report(company_id, company_feed_data)
             print(f"Report generated for {company_id}")
+
+
+if __name__ == "__main__":
+    main()
