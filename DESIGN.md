@@ -59,6 +59,7 @@ JSON Input → Search & Scrape → LLM Enrichment → HTML Generation → Output
 
 3. **Advanced Search**
    - Broader data sources (e.g. Crunchbase, SEC filings)
+   - Pay for the search to allow for faster processing and more encompassing data
 
 4. **Cost Optimization**
    - Batch LLM calls + prompt caching
