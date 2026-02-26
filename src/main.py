@@ -47,8 +47,8 @@ if __name__ == "__main__":
             try:
                 raw_news = service.fetch_client_news(client_name)
                 
-                # Random delay: wait 1-3 seconds to avoid Google blocks
-                time.sleep(random.uniform(1, 3)) 
+                # Random delay: wait 3 to 10 seconds to avoid Google blocks
+                time.sleep(random.uniform(3, 10)) 
             except Exception as e:
                 print(f"  Error: Could not fetch news for {client_name}: {e}")
                 if "429" in str(e):
