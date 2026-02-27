@@ -13,6 +13,11 @@ from src import main
 
 
 def test_main_skips_entire_company_if_report_exists(monkeypatch, tmp_path, capsys):
+    """ Test that main() skips news scraping if report already exists for a company.
+    
+        Verifies that NewsService and EnrichmentEngine are not instantiated when a
+        report file already exists on disk.
+    """
     # prepare fake config and data
     monkeypatch.setattr(main, 'load_config', lambda: {'openai': {'api_key': 'test-key'}})
 

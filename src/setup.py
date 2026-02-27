@@ -4,7 +4,14 @@ from collections import defaultdict
 
 
 def read_json_file(file_path):
-    """ Read, parse and return JSON file """
+    """ Read and parse a JSON file
+    
+        Args:
+            file_path (str): Path to the JSON file
+            
+        Returns:
+            dict or list: Parsed JSON data
+    """
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"File not found: {file_path}")
     
@@ -15,7 +22,16 @@ def read_json_file(file_path):
 
 
 def group_by_company_id(clients):
-    """ Group the clients by company ID, return a dict with companyId as key and list of job details as value """
+    """ Group client records by their company ID
+    
+        Removes the companyId and companyRank fields from each entry
+        
+        Args:
+            clients (list): List of client dictionaries, each with a 'companyId' field
+            
+        Returns:
+            dict: Dictionary mapping company IDs to lists of client details
+    """
     company_jobs = defaultdict(list)
 
     for client in clients:  # Parse all clients by companyId

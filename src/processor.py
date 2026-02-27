@@ -6,6 +6,15 @@ from math import ceil
 
 # Define the structure the LLM must follow
 class NewsInsight(BaseModel):
+    """ Structured news insight extracted and analysed by the LLM
+    
+        Attributes:
+            title (str): Headline of the news article
+            link (str): URL to the original article
+            summary (str): Brief summary of the news
+            why_it_matters (str): Business relevance for architects
+            angle (str): Specific opportunity angle
+    """
     title: str
     link: str
     summary: str
@@ -14,18 +23,48 @@ class NewsInsight(BaseModel):
 
 
 class ClientAnalysis(BaseModel):
+    """ Container for analysed news items for a client company
+    
+        Attributes:
+            news_items (List[NewsInsight]): List of enriched news insights
+    """
     news_items: List[NewsInsight]
 
 
 class EnrichmentEngine:
+    """ Enriches raw news articles with AI-powered business analysis
+        
+        Uses an OpenAI's model to analyze news articles and extract
+        business opportunities relevant to architects.
+    """
+    
     def __init__(self, api_key):
+        """Initialise the EnrichmentEngine with OpenAI API credentials.
+        
+        Args:
+            api_key (str): OpenAI API key for authentication.
+        """
         self.client = OpenAI(api_key=api_key)
 
     def analyze_news(self, client_name, news_list):
+        """ Analyse a list of news articles and extract business insights.
+        
+            Uses OpenAI API with automatic chunking to handle token limits.
+            Reduces chunk size on length errors and processes articles individually
+            as a fallback.
+            
+            Args:
+                client_name (str): Name of the company/client for contextual analysis.
+                news_list (list): List of news dictionaries with title, description, content, date, media, and link.
+                    
+            Returns:
+                list: List of dictionaries with analysed news insights.
+        """
         if not news_list:
             return []
 
         def build_context(items):
+            """ Build formatted context string from news items for the LLM """
             parts = []
 
             for n in items:
@@ -42,6 +81,14 @@ class EnrichmentEngine:
             return "\n".join(parts)
 
         def call_llm_for_chunk(chunk):
+            """ Call OpenAI API to analyse a chunk of news items
+            
+                Args:
+                    chunk (list): Subset of news items to analyse
+                    
+                Returns:
+                    list: Parsed news insights from LLM response
+            """
             news_context = build_context(chunk)
             prompt = f"""
             Analyze the following news for the company '{client_name}'.
@@ -72,6 +119,15 @@ class EnrichmentEngine:
         current_chunk = max_chunk_size
 
         def chunks(lst, n):
+            """ Generator to yield successive chunks of n items from a list
+            
+                Args:
+                    lst (list): List to chunk
+                    n (int): Size of each chunk
+                    
+                Returns:
+                    list: Successive chunks of size n
+            """
             for i in range(0, len(lst), n):
                 yield lst[i:i+n]
 

@@ -7,6 +7,11 @@ from src.generator import ReportGenerator
 
 
 def test_generate_company_report_creates_file_and_renders_content():
+    """ Test that generate_company_report creates an HTML file with correct content
+    
+        Verifies that the output file is created and contains the rendered company name
+        and client data.
+    """
     with tempfile.TemporaryDirectory() as tmpdir:
         # Create a minimal template directory and template file
         template_dir = os.path.join(tmpdir, 'templates')
@@ -51,6 +56,7 @@ def test_generate_company_report_creates_file_and_renders_content():
         assert "Big Launch" in contents
 
 def test_generate_company_report_skips_existing_file():
+    """ Ensure generate_company_report does not overwrite existing files when skip_if_exists=True """
     # when skip_if_exists is True, an existing output file should not be overwritten and the method should return None
     with tempfile.TemporaryDirectory() as tmpdir:
         template_dir = os.path.join(tmpdir, 'templates')

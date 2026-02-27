@@ -4,7 +4,19 @@ from datetime import datetime
 
 
 class ReportGenerator:
+    """ Generate HTML reports for company newsfeeds using Jinja2 templates
+    
+        Handles loading templates, rendering them with client data, and saving
+        the generated HTML reports to disk.
+    """
+    
     def __init__(self, template_dir='templates', output_dir='output'):
+        """ Initialise the ReportGenerator
+        
+            Args:
+                template_dir (str): Path to directory containing Jinja2 templates.
+                output_dir (str): Path to directory where HTML reports will be saved.
+        """
         self.env = Environment(loader=FileSystemLoader(template_dir))
         self.template = self.env.get_template('newsfeed_template.html')
         self.output_dir = output_dir
@@ -14,22 +26,39 @@ class ReportGenerator:
             os.makedirs(self.output_dir)
 
     def _company_file_path(self, company_name):
-        """ Return the expected output file path for a given company """
+        """ Generate the output file path for a given company
+        
+            Args:
+                company_name (str): Name of the company
+                
+            Returns:
+                str: Full path to the output HTML file for this company
+        """
         safe_filename = "".join([char for char in company_name if char.isalnum() or char in (' ', '_', '-')]).strip()
         return os.path.join(self.output_dir, f"{safe_filename.replace(' ', '_')}_newsfeed.html")
 
     def report_exists(self, company_name):
-        """ Check whether a report for ``company_name`` already exists on disk """
+        """ Check whether a report for the given company already exists on disk
+        
+            Args:
+                company_name (str): Name of the company to check
+                
+            Returns:
+                bool: True if report exists, False otherwise
+        """
         return os.path.exists(self._company_file_path(company_name))
 
     def generate_company_report(self, company_name, enriched_clients, *, skip_if_exists: bool = False):
-        """ Creates a single HTML file for a specific company
-
-            'enriched_clients': list of dictionaries
-            'skip_if_exists': when True and the target file already exists, the
-            method will do nothing and return ``None``. This allows callers to
-            ignore companies for which an output file has already been
-            generated (e.g. when resumed from a previous run).
+        """ Generate and save an HTML report for a specific company
+        
+            Args:
+                company_name (str): Name of the company
+                enriched_clients (list): List of dictionaries containing client information
+                    and their enriched news items.
+                skip_if_exists (bool): If True, skip generation if report already exists.
+                    
+            Returns:
+                str: Full path to the generated HTML file, or None if skipped.
         """
         # Clean the company name for a valid filename
         safe_filename = "".join([char for char in company_name if char.isalnum() or char in (' ', '_', '-')]).strip()

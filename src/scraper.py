@@ -7,16 +7,33 @@ import random
 
 
 class NewsService:
+    """ Fetches relevant news articles for companies using Google News
+    
+        Implements intelligent rate limiting and retry logic to handle rate limits
+        Supports optional full article text extraction
+    """
+    
     def __init__(self, period='30d'):
+        """ Initialise the NewsService with a time period for searches
+        
+            Args:
+                period (str): Time period for news lookback (e.g. '7d', '30d', '1y'). Defaults to '30d'
+        """
         self.gn = GoogleNews(lang='en', region='US', period=period)  # Period defines how far back to look
         
     def fetch_client_news(self, client_name, max_retries: int = 3, fetch_full: bool = False, max_content_chars: int = 2000):
-        """ Searches for news, specifically targeting business growth or architectural triggers.
-
-            The underlying GoogleNews library will occasionally return HTTP 429 responses
-            when the service is hit too quickly.  We implement a simple retry loop with
-            exponential backoff and a small fixed jitter so that a long list of clients
-            does not immediately exhaust the quota.
+        """ Search for and fetch news articles related to a client company
+        
+            Implements exponential backoff retry logic for rate limit errors
+            
+            Args:
+                client_name (str): Name of the company to search for
+                max_retries (int): Maximum number of retry attempts on rate limit. Defaults to 3
+                fetch_full (bool): Whether to fetch complete article text. Defaults to False
+                max_content_chars (int): Maximum characters to extract from articles. Defaults to 2000
+                    
+            Returns:
+                list: List of cleaned news article dictionaries, or empty list on error
         """
         self.gn.clear()  # Avoid mixing results from previous searches
 
@@ -79,7 +96,16 @@ class NewsService:
         return []
 
     def _clean_results(self, raw_results):
-        """ Formats the library output into a cleaner dictionary for the LLM """
+        """ Format and clean GoogleNews results for downstream processing
+        
+            Limits to top 5 results and restructures data into a consistent format
+            
+            Args:
+                raw_results (list): Raw results from GoogleNews library
+                
+            Returns:
+                list: Cleaned list of news articles with standardised fields
+        """
         formatted = []
 
         for item in raw_results[:5]: # Only keep top 5 news items to keep LLM tokens low
@@ -95,7 +121,18 @@ class NewsService:
         return formatted
 
     def _fetch_full_text(self, url: str, timeout: int = 10):
-        """ Best-effort extractor for the main article text from a URL """
+        """ Attempt to extract the main article text from a URL
+        
+            Prefers semantic HTML tags (article, main) but falls back to paragraph
+            extraction. Silently returns None on any extraction error.
+            
+            Args:
+                url (str): URL of the article to extract text from
+                timeout (int): Request timeout in seconds. Defaults to 10
+                
+            Returns:
+                str: Extracted article text, or None if extraction fails
+        """
         headers = {
             "User-Agent": "Mozilla/5.0 (compatible; ClientInsightBot/1.0; +https://example.com)"
         }
@@ -119,10 +156,16 @@ class NewsService:
 
 
     def run_through_clients(self, clients):
-        """ Main method to run through all clients and fetch news.
-
-            Includes additional throttling logic so the script can process large
-            lists without immediately triggering a 429 error from Google.
+        """ Fetch news for a list of clients with built-in rate limiting
+        
+            Implements per-client delays and longer cooldowns after every 50 requests
+            to avoid triggering rate limits.
+            
+            Args:
+                clients (list): List of client dictionaries with 'name' field
+                
+            Returns:
+                dict: Dictionary mapping client names to lists of news articles
         """
         all_news = {}
 

@@ -6,6 +6,7 @@ from src.scraper import NewsService
 
 
 def test_clean_results_formats_and_limits_items():
+    """ Verify that _clean_results caps results at five items and formats keys correctly """
     svc = NewsService()
 
     # Build synthetic raw results with more than 5 items
@@ -34,6 +35,7 @@ def test_clean_results_formats_and_limits_items():
 
 
 def test_fetch_client_news_rate_limit_retries(monkeypatch, capsys):
+    """ Test that fetch_client_news retries on HTTP 429 rate limit errors """
     svc = NewsService()
 
     # simulate GoogleNews.search always raising a 429-related exception
@@ -52,6 +54,7 @@ def test_fetch_client_news_rate_limit_retries(monkeypatch, capsys):
 
 
 def test_run_through_clients_applies_throttling(monkeypatch):
+    """ Check that run_through_clients applies per-client sleep and cooldown logic """
     svc = NewsService()
     clients = [{'name': f'Client{i}'} for i in range(1, 4)]
 

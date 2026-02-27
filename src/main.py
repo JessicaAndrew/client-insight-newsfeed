@@ -11,6 +11,11 @@ from generator import ReportGenerator
 
 
 def load_config():
+    """ Load configuration from config.yaml file
+    
+        Returns:
+            dict: Configuration dictionary loaded from YAML file
+    """
     # Construct path to config.yaml
     config_path = os.path.join(os.path.dirname(__file__), '..', 'config.yaml')
     
@@ -19,6 +24,12 @@ def load_config():
 
 
 def main():
+    """ Main entry point for the client insight newsfeed generator
+    
+        Orchestrates the workflow of fetching news for companies, enriching it
+        with AI analysis, and generating HTML reports. Skips companies with
+        existing reports to allow resuming interrupted runs.
+    """
     # Setup paths and services
     json_file_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'clients.json')
 
